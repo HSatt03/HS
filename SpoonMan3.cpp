@@ -6,13 +6,12 @@
 #include <stdlib.h>
 
 using namespace std;
-Console c;
-c.setFullScreen();
+
 const int hight=23, width=49;
 char map [hight][width];
 int x,y,x0,y0,xn,yn,x_B,y_B,x_door,y_door;
-int move_count=0,move_counts = 0,scope=0,bomb_count=0;
-bool BOMB_ACTIVE=false, sw_win=false;
+int move_count,move_counts,scope,bomb_count,enemy_count;
+bool BOMB_ACTIVE, sw_door;
 
 //*********************************************
 void gotoxy(int x, int y) {
@@ -209,6 +208,7 @@ int MainMenu()
         }
       }
     }
+
     return 0;
 }
 
@@ -221,9 +221,9 @@ int HelpMenu()
 
     system("cls");
     gotoxy(5,y_start);
-    for(i=0;i<=widthMM-1;i++)
+    for(i=0;i<widthMM-1;i++)
         cout<<"* ";
-//    cout<<"*";
+    cout<<"*";
     for(i=1;i<hightMM-1;i++)
     {
         gotoxy(5,y_start+i);
@@ -233,9 +233,9 @@ int HelpMenu()
         cout<<"*";
     }
     gotoxy(5,y_start+i);
-    for(i=0;i<=widthMM-1;i++)
+    for(i=0;i<widthMM-1;i++)
         cout<<"* ";
-//    cout<<"*";
+    cout<<"*";
 
     gotoxy(8,y_start+2);
     cout<<"       Help Menu     ";
@@ -285,13 +285,16 @@ void SetBomb()
 }
 
 //*********************************************
-void ChechkDoor(int xt, int yt)
+void Destructing(int xt, int yt)
 {
+        if (map[yt][xt]=='E')  enemy_count+=1;
+
         if (map[yt][xt]=='#' && xt==x_door && yt==y_door)  // Find Door
         {
             gotoxy(xt,yt);
             cout << 'D';
-            sw_win=true;
+            map[yt][xt]='D';
+            sw_door=true;
         }
         else
         {
@@ -302,7 +305,7 @@ void ChechkDoor(int xt, int yt)
 }
 
 //*********************************************
-int Destruct()   // return 0: end game(win)  &&  return 1: continue game
+int CheckArroundHouse()   // return 0: end game(win)  &&  return 1: continue game
 {
     int x1,y1;
 
@@ -314,34 +317,31 @@ int Destruct()   // return 0: end game(win)  &&  return 1: continue game
     y1=y_B;
     if ((x1>=2) && ((map[y1][x1]=='#') || (map[y1][x1]=='E')))
     {
-        ChechkDoor(x1,y1);
+        Destructing(x1,y1);
     }
 
     x1=x_B+4;  // كنترل خانه سمت راست
     y1=y_B;
     if ((x1<=width-3) && ((map[y1][x1]=='#') || (map[y1][x1]=='E')))
     {
-        ChechkDoor(x1,y1);
+        Destructing(x1,y1);
     }
 
     x1=x_B;  // كنترل خانه سمت بالا
     y1=y_B-2;
     if ((y1>=1) && ((map[y1][x1]=='#') || (map[y1][x1]=='E')))
     {
-        ChechkDoor(x1,y1);
+        Destructing(x1,y1);
     }
 
     x1=x_B;  // كنترل خانه سمت پايين
     y1=y_B+2;
     if ((y1<=hight-1) && ((map[y1][x1]=='#') || (map[y1][x1]=='E')))
     {
-        ChechkDoor(x1,y1);
+        Destructing(x1,y1);
     }
 
-    if (sw_win)
-        return 0;
-    else
-        gotoxy(x,y);
+    gotoxy(x,y);
 
     return 1;
 }
@@ -364,19 +364,9 @@ int move()
                     move_count += 1;
                     if(move_count == 2)
                     {
-                        if (Destruct()==1)  // Continue
-                        {
-                            move_count = 0;
-                            BOMB_ACTIVE = false;
-                        }
-                        else   // Find Door
-                        {
-                            gotoxy(10,hight+2);
-                            MessageBox(9,9,"   you Win ... !!   Press Any Key to Continue ");
-                            gotoxy(width+2,hight+2);
-                            getch();
-                            return 0;   // خاتمه برنامه
-                        }
+                        CheckArroundHouse();
+                        move_count = 0;
+                        BOMB_ACTIVE = false;
 
                         if (((xn-x_B==4 || xn-x_B==-4) && yn==y_B) || ((yn-y_B==2 || yn-y_B==-2) && (xn==x_B)))  // Player get near to Bomb
                         {
@@ -392,6 +382,15 @@ int move()
                     }
                 }
             }
+                        if  (sw_door==true && enemy_count==3 && xn==x_door && yn==y_door)  // Win
+                        {
+                            gotoxy(10,hight+2);
+                            MessageBox(9,9,"   you Win ... !!   Press Any Key to Continue ");
+                            gotoxy(width+2,hight+2);
+                            getch();
+                            return 0;   // خاتمه برنامه
+                        }
+
     return 1;
 }
 
@@ -414,7 +413,15 @@ int main()
           return 0;
       }
 
+      move_count=0;
+      scope=0;
+      move_counts=0;
+      bomb_count=0;
+      enemy_count=0;
+      BOMB_ACTIVE=false;
+      sw_door=false;
       sw_EndGame=false;
+
       CreateMap();
       system("cls");
       PrintMap();
@@ -492,9 +499,6 @@ int main()
                     }
             }
 
-//            if ((ch==72 || ch==80 || ch==75 || ch==77) && (map[yn][xn]==' '))
-//            {
-//            }
             ShowDashbord();
 
                 gotoxy(60,10);
